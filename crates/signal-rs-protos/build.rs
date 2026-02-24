@@ -15,7 +15,7 @@ fn main() -> Result<()> {
 
     // Re-run if any proto file changes
     for proto in proto_files {
-        println!("cargo:rerun-if-changed={}", proto);
+        println!("cargo:rerun-if-changed={proto}");
     }
 
     let mut config = prost_build::Config::new();
