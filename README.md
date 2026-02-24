@@ -78,7 +78,7 @@ signal-rs workspace (7 crates)
 
 ## Prerequisites
 
-- Rust 1.85+ (edition 2024) — install via [rustup](https://rustup.rs)
+- Rust 1.88+ (edition 2024) — install via [rustup](https://rustup.rs)
 - A C compiler (for SQLCipher/OpenSSL bundled build)
   - macOS: `xcode-select --install`
   - Ubuntu/Debian: `apt install build-essential`
