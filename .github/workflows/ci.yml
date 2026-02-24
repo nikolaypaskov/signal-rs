@@ -25,13 +25,13 @@ jobs:
           toolchain: "1.88"
           components: clippy
 
-      - name: Install cmake (Ubuntu)
+      - name: Install dependencies (Ubuntu)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y cmake
+        run: sudo apt-get update && sudo apt-get install -y cmake protobuf-compiler
 
-      - name: Install cmake (macOS)
+      - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
-        run: brew install cmake
+        run: brew install cmake protobuf
 
       - uses: Swatinem/rust-cache@v2
 
