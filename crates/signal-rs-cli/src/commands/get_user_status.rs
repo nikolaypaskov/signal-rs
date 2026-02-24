@@ -25,7 +25,7 @@ pub async fn execute(args: GetUserStatusArgs) -> Result<()> {
         if let Some(r) = found {
             println!("{}: registered (UUID: {})", number, r.uuid);
         } else {
-            println!("{}: not found in local contacts", number);
+            println!("{number}: not found in local contacts");
         }
     }
 

@@ -573,7 +573,7 @@ impl ReceiveHelper {
 
             // Store as a normal message with sticker emoji as the body
             let sticker_body = if sticker_emoji.is_empty() {
-                format!("[Sticker pack={} id={}]", pack_id, sticker_id)
+                format!("[Sticker pack={pack_id} id={sticker_id}]")
             } else {
                 sticker_emoji.to_string()
             };

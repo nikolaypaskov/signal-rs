@@ -219,7 +219,7 @@ impl<'a> KeysApi<'a> {
         address: &ServiceId,
         device_id: DeviceId,
     ) -> Result<PreKeyBundle> {
-        let path = format!("/v2/keys/{}/{}", address, device_id);
+        let path = format!("/v2/keys/{address}/{device_id}");
         debug!(path = %path, "fetching pre-key bundle");
 
         let response: PreKeyBundleResponse = self.http.get_json(&path).await?;
@@ -304,7 +304,7 @@ impl<'a> KeysApi<'a> {
         &self,
         address: &ServiceId,
     ) -> Result<(IdentityKey, Vec<PreKeyBundle>)> {
-        let path = format!("/v2/keys/{}/*", address);
+        let path = format!("/v2/keys/{address}/*");
         debug!(path = %path, "fetching pre-key bundles for all devices");
 
         let response: PreKeyBundleResponse = self.http.get_json(&path).await?;

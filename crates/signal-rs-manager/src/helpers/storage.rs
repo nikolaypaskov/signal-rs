@@ -1262,7 +1262,7 @@ mod tests {
 
         // Verify the group was created.
         use sha2::Digest;
-        let expected_gid = sha2::Sha256::digest(&[0xDD; 32]).to_vec();
+        let expected_gid = sha2::Sha256::digest([0xDD; 32]).to_vec();
         let g = db.get_group_by_group_id(&expected_gid).unwrap();
         assert!(g.is_some());
 

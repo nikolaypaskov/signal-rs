@@ -419,7 +419,7 @@ impl App {
         self.state.message_scroll_offset += prepended_count;
 
         self.state.show_notification(
-            format!("Loaded {} older messages", prepended_count),
+            format!("Loaded {prepended_count} older messages"),
             crate::state::app_state::NotificationLevel::Info,
         );
     }
@@ -772,7 +772,7 @@ impl App {
                 if idx < self.state.conversations.len() {
                     let name = self.state.conversations[idx].name.clone();
                     self.state.show_confirm(
-                        format!("Archive conversation \"{}\"?", name),
+                        format!("Archive conversation \"{name}\"?"),
                         ConfirmAction::ArchiveConversation(idx),
                     );
                 }
@@ -833,7 +833,7 @@ impl App {
                             preview.clone()
                         };
                         self.state.show_confirm(
-                            format!("Delete message \"{}\"?", short),
+                            format!("Delete message \"{short}\"?"),
                             ConfirmAction::DeleteMessage(idx),
                         );
                     }
@@ -1081,7 +1081,7 @@ impl App {
                                         preview.clone()
                                     };
                                     self.state.show_confirm(
-                                        format!("Delete message \"{}\"?", short),
+                                        format!("Delete message \"{short}\"?"),
                                         ConfirmAction::DeleteMessage(idx),
                                     );
                                 }

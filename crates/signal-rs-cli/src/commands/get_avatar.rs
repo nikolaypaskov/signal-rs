@@ -22,7 +22,7 @@ pub async fn execute(args: GetAvatarArgs) -> Result<()> {
     let output_path = args.output.unwrap_or_else(|| "avatar.jpg".to_string());
 
     if let Some(ref recipient) = args.recipient {
-        eprintln!("Downloading avatar for {} to {}...", recipient, output_path);
+        eprintln!("Downloading avatar for {recipient} to {output_path}...");
         // To implement:
         //   1. Look up recipient's profile_avatar_url_path from the database
         //   2. Fetch the avatar from the CDN using the profile key for decryption
@@ -46,7 +46,7 @@ pub async fn execute(args: GetAvatarArgs) -> Result<()> {
             eprintln!("Recipient not found in local database.");
         }
     } else if let Some(ref group_id) = args.group_id {
-        eprintln!("Downloading avatar for group {} to {}...", group_id, output_path);
+        eprintln!("Downloading avatar for group {group_id} to {output_path}...");
         // Group avatars are stored in the group data protobuf.
     }
 

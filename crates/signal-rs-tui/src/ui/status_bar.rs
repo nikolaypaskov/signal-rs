@@ -56,7 +56,7 @@ fn render_status_line(frame: &mut Frame, area: Rect, state: &AppState) {
         };
         vec![
             sep.clone(),
-            Span::styled(format!(" {} ", label), style),
+            Span::styled(format!(" {label} "), style),
         ]
     } else {
         vec![]
@@ -65,7 +65,7 @@ fn render_status_line(frame: &mut Frame, area: Rect, state: &AppState) {
     let mut spans = vec![
         connection_dot,
         sep.clone(),
-        Span::styled(format!(" {} ", view_name), theme::secondary()),
+        Span::styled(format!(" {view_name} "), theme::secondary()),
     ];
     spans.extend(mode_span);
     spans.push(sep);
@@ -86,7 +86,7 @@ fn render_hints_line(frame: &mut Frame, area: Rect, state: &AppState) {
             spans.push(Span::styled("  ", theme::dim()));
         }
         spans.push(Span::styled(*key, theme::accent()));
-        spans.push(Span::styled(format!(" {}", desc), theme::dim()));
+        spans.push(Span::styled(format!(" {desc}"), theme::dim()));
     }
 
     let line = Line::from(vec![Span::raw(" ")].into_iter().chain(spans).collect::<Vec<_>>());

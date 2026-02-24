@@ -823,8 +823,7 @@ impl<S: SessionStore + IdentityKeyStore + SenderKeyStore + SignedPreKeyStore + P
         let target_iteration = sk_msg.iteration;
         if target_iteration < current_iteration {
             return Err(ServiceError::InvalidResponse(format!(
-                "sender key iteration {} is behind current {}",
-                target_iteration, current_iteration,
+                "sender key iteration {target_iteration} is behind current {current_iteration}"
             )));
         }
 

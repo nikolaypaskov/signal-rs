@@ -76,7 +76,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             if !lines.is_empty() {
                 lines.push(Line::from(""));
             }
-            let separator = format!("── {} ──", date_str);
+            let separator = format!("── {date_str} ──");
             lines.push(Line::from(Span::styled(separator, theme::dim_italic())));
             lines.push(Line::from(""));
             prev_date = Some(date_str);
@@ -90,7 +90,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
         if let Some(ref reply_body) = msg.reply_preview {
             let sender_name = msg.reply_sender.as_deref().unwrap_or("Unknown");
             let preview_text = truncate_str(reply_body, 50);
-            let reply_text = format!("\u{2502} {}: {}", sender_name, preview_text);
+            let reply_text = format!("\u{2502} {sender_name}: {preview_text}");
             lines.push(Line::from(Span::styled(
                 reply_text,
                 Style::default()
@@ -186,7 +186,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
             let mut sorted_reactions: Vec<(&String, &u32)> = msg.reactions.iter().collect();
             sorted_reactions.sort_by(|a, b| b.1.cmp(a.1));
             for (emoji, count) in sorted_reactions {
-                reaction_parts.push(format!("{} {}", emoji, count));
+                reaction_parts.push(format!("{emoji} {count}"));
             }
             let reaction_text = reaction_parts.join("  ");
             lines.push(Line::from(Span::styled(reaction_text, theme::secondary())));

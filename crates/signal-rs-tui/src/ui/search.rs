@@ -104,7 +104,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
                         Line::from(vec![
                             Span::styled("[Msg] ", theme::success()),
                             Span::styled(
-                                format!("{} - {}", conversation_name, sender),
+                                format!("{conversation_name} - {sender}"),
                                 name_style,
                             ),
                         ]),

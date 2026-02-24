@@ -57,8 +57,7 @@ impl WireSignalMessage {
         let version = bytes[0];
         if (version >> 4) < 3 || (version >> 4) > 4 {
             return Err(ProtocolError::InvalidMessage(format!(
-                "unsupported SignalMessage version: {:#x}",
-                version
+                "unsupported SignalMessage version: {version:#x}"
             )));
         }
 
@@ -191,8 +190,7 @@ impl WirePreKeySignalMessage {
         let version = bytes[0];
         if (version >> 4) < 3 || (version >> 4) > 4 {
             return Err(ProtocolError::InvalidMessage(format!(
-                "unsupported PreKeySignalMessage version: {:#x}",
-                version
+                "unsupported PreKeySignalMessage version: {version:#x}"
             )));
         }
 
@@ -286,8 +284,7 @@ impl WireSenderKeyMessage {
         let version = bytes[0];
         if (version >> 4) < 3 || (version >> 4) > 4 {
             return Err(ProtocolError::InvalidMessage(format!(
-                "unsupported SenderKeyMessage version: {:#x}",
-                version
+                "unsupported SenderKeyMessage version: {version:#x}"
             )));
         }
 

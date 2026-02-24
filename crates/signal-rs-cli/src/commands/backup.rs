@@ -314,8 +314,7 @@ async fn execute_restore(args: RestoreArgs, global: &GlobalOpts) -> Result<()> {
     }
 
     eprintln!(
-        "Restore complete: {} contacts, {} groups, {} messages restored from backup.",
-        contacts_restored, groups_restored, messages_restored
+        "Restore complete: {contacts_restored} contacts, {groups_restored} groups, {messages_restored} messages restored from backup."
     );
 
     Ok(())

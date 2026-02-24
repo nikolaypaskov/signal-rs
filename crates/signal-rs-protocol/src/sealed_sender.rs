@@ -92,8 +92,7 @@ pub fn validate_certificate_sender(
     })?;
     if cert_uuid != *sender_uuid {
         return Err(ProtocolError::InvalidMessage(format!(
-            "sender UUID mismatch: certificate has {}, envelope has {}",
-            cert_uuid, sender_uuid,
+            "sender UUID mismatch: certificate has {cert_uuid}, envelope has {sender_uuid}"
         )));
     }
     Ok(())

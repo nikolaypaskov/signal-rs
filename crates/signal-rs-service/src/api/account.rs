@@ -208,7 +208,7 @@ impl<'a> AccountApi<'a> {
     ///
     /// DELETE /v1/devices/{device_id}
     pub async fn remove_device(&self, device_id: DeviceId) -> Result<()> {
-        let path = format!("/v1/devices/{}", device_id);
+        let path = format!("/v1/devices/{device_id}");
         debug!(device_id = %device_id, "removing device");
         self.http.delete(&path).await
     }

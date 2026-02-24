@@ -217,8 +217,7 @@ impl<'a> MessageApi<'a> {
         story: bool,
     ) -> Result<MultiRecipientResponse> {
         let path = format!(
-            "/v1/messages/multi_recipient?ts={}&online={}&urgent={}&story={}",
-            timestamp, online, urgent, story
+            "/v1/messages/multi_recipient?ts={timestamp}&online={online}&urgent={urgent}&story={story}"
         );
         debug!(
             timestamp = timestamp,

@@ -86,7 +86,7 @@ impl AuthorizationPair {
         let username = if device_id == DeviceId::PRIMARY {
             uuid.to_string()
         } else {
-            format!("{}.{}", uuid, device_id)
+            format!("{uuid}.{device_id}")
         };
 
         let raw = format!("{username}:{password}");

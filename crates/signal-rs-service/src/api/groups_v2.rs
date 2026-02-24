@@ -85,8 +85,7 @@ impl<'a> GroupsV2Api<'a> {
         redemption_end_seconds: u64,
     ) -> Result<GroupAuthCredentialResponse> {
         let path = format!(
-            "/v1/certificate/auth/group?redemptionStartSeconds={}&redemptionEndSeconds={}",
-            redemption_start_seconds, redemption_end_seconds
+            "/v1/certificate/auth/group?redemptionStartSeconds={redemption_start_seconds}&redemptionEndSeconds={redemption_end_seconds}"
         );
         debug!(
             start = redemption_start_seconds,
