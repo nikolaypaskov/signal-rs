@@ -1,0 +1,135 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/signal-rs-protos",
+    "crates/signal-rs-protocol",
+    "crates/signal-rs-store",
+    "crates/signal-rs-service",
+    "crates/signal-rs-manager",
+    "crates/signal-rs-cli",
+    "crates/signal-rs-tui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "AGPL-3.0-only"
+description = "A 100% Rust implementation of a Signal messenger client"
+repository = "https://github.com/nikolaypaskov/signal-rs"
+
+[workspace.dependencies]
+# Internal crates
+signal-rs-protos = { path = "crates/signal-rs-protos" }
+signal-rs-protocol = { path = "crates/signal-rs-protocol" }
+signal-rs-store = { path = "crates/signal-rs-store" }
+signal-rs-service = { path = "crates/signal-rs-service" }
+signal-rs-manager = { path = "crates/signal-rs-manager" }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+prost = "0.13"
+prost-types = "0.13"
+
+# HTTP & WebSocket
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "json", "stream"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+
+# Storage
+rusqlite = { version = "0.32", features = ["bundled-sqlcipher-vendored-openssl", "blob"] }
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env", "wrap_help"] }
+clap_complete = "4.5"
+clap_mangen = "0.2"
+
+# TUI
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Colored output
+owo-colors = "4"
+
+# Progress & prompts
+indicatif = "0.17"
+inquire = "0.7"
+
+# Tables
+tabled = { version = "0.17", features = ["derive"] }
+
+# Fuzzy search
+nucleo = "0.5"
+
+# Clipboard & notifications
+arboard = "3"
+notify-rust = "4"
+
+# Config
+confy = "0.6"
+directories = "5"
+toml = "0.8"
+
+# Error handling
+color-eyre = "0.6"
+thiserror = "2"
+eyre = "0.6"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Crypto & encoding
+base64 = "0.22"
+hex = "0.4"
+uuid = { version = "1", features = ["v4", "serde"] }
+rand = "0.8"
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+ed25519-dalek = { version = "2", features = ["rand_core", "hazmat"] }
+curve25519-dalek = "4"
+hkdf = "0.12"
+sha2 = "0.10"
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+ctr = "0.9"
+hmac = "0.12"
+aes-gcm = "0.10"
+argon2 = "0.5"
+urlencoding = "2"
+hostname = "0.4"
+snow = "0.9"
+rustls = { version = "0.23", features = ["ring"] }
+rustls-native-certs = "0.8"
+rustls-pemfile = "2"
+
+# libsignal (official Signal Protocol implementation)
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal", tag = "v0.87.4" }
+zkgroup = { git = "https://github.com/signalapp/libsignal", tag = "v0.87.4" }
+usernames = { git = "https://github.com/signalapp/libsignal", tag = "v0.87.4" }
+libsignal-core = { git = "https://github.com/signalapp/libsignal", tag = "v0.87.4" }
+# rand 0.9 is required for libsignal interop (libsignal uses rand 0.9 internally)
+rand_09 = { package = "rand", version = "0.9" }
+
+# Password input
+rpassword = "5"
+
+# Misc
+bytes = "1"
+futures = "0.3"
+url = "2"
+qr2term = "0.3"
+unicode-width = "0.2"
+unicode-segmentation = "1"
+
+# Patch crates.io to use Signal's fork of curve25519-dalek (required by libsignal)
+[patch.crates-io]
+curve25519-dalek = { git = "https://github.com/signalapp/curve25519-dalek", tag = "signal-curve25519-4.1.3" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

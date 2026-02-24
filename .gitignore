@@ -1,0 +1,23 @@
+/target
+Cargo.lock
+*.swp
+*.swo
+*~
+.DS_Store
+.env
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Log files
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+Thumbs.db

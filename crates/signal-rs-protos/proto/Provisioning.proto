@@ -1,0 +1,49 @@
+// Signal Protocol Buffer definitions - Device provisioning
+// Used during the device linking process
+//
+// Field numbers match upstream Signal-Android/Signal-iOS as of 2025.
+
+syntax = "proto3";
+
+package signalservice;
+
+option java_package = "org.whispersystems.signalservice.internal.push";
+option java_outer_classname = "ProvisioningProtos";
+
+message ProvisioningUuid {
+  optional string uuid = 1;
+}
+
+message ProvisionEnvelope {
+  optional bytes public_key = 1;
+  optional bytes body       = 2;
+}
+
+message ProvisionMessage {
+  optional bytes  aci_identity_key_public  = 1;
+  optional bytes  aci_identity_key_private = 2;
+  optional string number                   = 3;
+  optional string provisioning_code        = 4;
+  optional string user_agent               = 5;
+  optional bytes  profile_key              = 6;
+  optional bool   read_receipts            = 7;
+  optional string aci                      = 8;
+  optional uint32 provisioning_version     = 9;
+  optional string pni                      = 10;
+  optional bytes  pni_identity_key_public  = 11;
+  optional bytes  pni_identity_key_private = 12;
+  optional bytes  master_key               = 13;
+  optional bytes  ephemeral_backup_key     = 14;
+  optional string account_entropy_pool     = 15;
+  optional bytes  media_root_backup_key    = 16;
+  optional bytes  aci_binary               = 17;
+  optional bytes  pni_binary               = 18;
+  // NEXT ID: 19
+}
+
+// Encrypted device name, used in account attributes during linking.
+message DeviceName {
+  optional bytes ephemeral_public = 1;
+  optional bytes synthetic_iv     = 2;
+  optional bytes ciphertext       = 3;
+}

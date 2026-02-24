@@ -1,0 +1,307 @@
+// Signal Protocol Buffer definitions - Encrypted storage service
+// Used for syncing contacts, groups, and account settings across devices
+//
+// Field numbers MUST match Signal-Android upstream:
+// Signal-Android/lib/libsignal-service/src/main/protowire/StorageService.proto
+
+syntax = "proto3";
+
+package signalservice;
+
+option java_package = "org.whispersystems.signalservice.internal.storage.protos";
+option java_multiple_files = true;
+
+message StorageManifest {
+  uint64 version = 1;
+  bytes  value   = 2;
+}
+
+message StorageItem {
+  bytes key   = 1;
+  bytes value = 2;
+}
+
+message StorageItems {
+  repeated StorageItem items = 1;
+}
+
+message ReadOperation {
+  repeated bytes read_key = 1;
+}
+
+message WriteOperation {
+           StorageManifest manifest    = 1;
+  repeated StorageItem     insert_item = 2;
+  repeated bytes           delete_key  = 3;
+           bool            clear_all   = 4;
+}
+
+message ManifestRecord {
+  message Identifier {
+    enum Type {
+      UNKNOWN                 = 0;
+      CONTACT                 = 1;
+      GROUPV1                 = 2;
+      GROUPV2                 = 3;
+      ACCOUNT                 = 4;
+      STORY_DISTRIBUTION_LIST = 5;
+      CALL_LINK               = 7;
+      CHAT_FOLDER             = 8;
+      NOTIFICATION_PROFILE    = 9;
+    }
+
+    bytes raw  = 1;
+    Type  type = 2;
+  }
+
+           uint64     version      = 1;
+  repeated Identifier identifiers  = 2;
+           uint32     source_device = 3;
+           bytes      record_ikm   = 4;
+}
+
+message StorageRecord {
+  oneof record {
+    ContactRecord               contact                = 1;
+    GroupV1Record               group_v1               = 2;
+    GroupV2Record               group_v2               = 3;
+    AccountRecord               account                = 4;
+    StoryDistributionListRecord story_distribution_list = 5;
+    StickerPackRecord           sticker_pack           = 6;
+    CallLinkRecord              call_link              = 7;
+    ChatFolderRecord            chat_folder            = 8;
+    NotificationProfile         notification_profile   = 9;
+  }
+}
+
+message ContactRecord {
+  enum IdentityState {
+    DEFAULT    = 0;
+    VERIFIED   = 1;
+    UNVERIFIED = 2;
+  }
+
+  message Name {
+    string given  = 1;
+    string family = 2;
+  }
+
+  string        aci                        = 1;
+  string        e164                       = 2;
+  bytes         profile_key                = 3;
+  bytes         identity_key               = 4;
+  IdentityState identity_state             = 5;
+  string        given_name                 = 6;
+  string        family_name                = 7;
+  string        username                   = 8;
+  bool          blocked                    = 9;
+  bool          whitelisted                = 10;
+  bool          archived                   = 11;
+  bool          marked_unread              = 12;
+  uint64        mute_until_timestamp       = 13;
+  bool          hide_story                 = 14;
+  string        pni                        = 15;
+  uint64        unregistered_at_timestamp  = 16;
+  string        system_given_name          = 17;
+  string        system_family_name         = 18;
+  string        system_nickname            = 19;
+  bool          hidden                     = 20;
+  bool          pni_signature_verified     = 21;
+  Name          nickname                   = 22;
+  string        note                       = 23;
+  bytes         aci_binary                 = 25;
+  bytes         pni_binary                 = 26;
+  // Next ID: 27
+}
+
+message GroupV1Record {
+  bytes  id                  = 1;
+  bool   blocked             = 2;
+  bool   whitelisted         = 3;
+  bool   archived            = 4;
+  bool   marked_unread       = 5;
+  uint64 mute_until_timestamp = 6;
+}
+
+message GroupV2Record {
+  enum StorySendMode {
+    DEFAULT  = 0;
+    DISABLED = 1;
+    ENABLED  = 2;
+  }
+
+  bytes         master_key                       = 1;
+  bool          blocked                          = 2;
+  bool          whitelisted                      = 3;
+  bool          archived                         = 4;
+  bool          marked_unread                    = 5;
+  uint64        mute_until_timestamp             = 6;
+  bool          dont_notify_for_mentions_if_muted = 7;
+  bool          hide_story                       = 8;
+  // field 9 reserved (was storySendEnabled)
+  StorySendMode story_send_mode                  = 10;
+}
+
+message AccountRecord {
+
+  enum PhoneNumberSharingMode {
+    UNKNOWN   = 0;
+    EVERYBODY = 1;
+    NOBODY    = 2;
+  }
+
+  message PinnedConversation {
+    message Contact {
+      string service_id        = 1;
+      string e164              = 2;
+      bytes  service_id_binary = 3;
+    }
+
+    oneof identifier {
+      Contact contact          = 1;
+      bytes   legacy_group_id  = 3;
+      bytes   group_master_key = 4;
+    }
+  }
+
+  message UsernameLink {
+    enum Color {
+      UNKNOWN = 0;
+      BLUE    = 1;
+      WHITE   = 2;
+      GREY    = 3;
+      OLIVE   = 4;
+      GREEN   = 5;
+      ORANGE  = 6;
+      PINK    = 7;
+      PURPLE  = 8;
+    }
+
+    bytes entropy   = 1;
+    bytes server_id = 2;
+    Color color     = 3;
+  }
+
+  message Payments {
+    bool  enabled = 1;
+    bytes entropy = 2;
+  }
+
+           bytes                    profile_key                       = 1;
+           string                   given_name                        = 2;
+           string                   family_name                       = 3;
+           string                   avatar_url                        = 4;
+           bool                     note_to_self_archived             = 5;
+           bool                     read_receipts                     = 6;
+           bool                     sealed_sender_indicators          = 7;
+           bool                     typing_indicators                 = 8;
+  // field 9 reserved (was proxiedLinkPreviews)
+           bool                     note_to_self_marked_unread        = 10;
+           bool                     link_previews                     = 11;
+           PhoneNumberSharingMode   phone_number_sharing_mode         = 12;
+           bool                     unlisted_phone_number             = 13;
+  repeated PinnedConversation       pinned_conversations              = 14;
+           bool                     prefer_contact_avatars            = 15;
+           Payments                 payments                          = 16;
+           uint32                   universal_expire_timer            = 17;
+           bool                     primary_sends_sms                 = 18;
+  // field 19 reserved (was e164)
+  repeated string                   preferred_reaction_emoji          = 20;
+           bytes                    subscriber_id                     = 21;
+           string                   subscriber_currency_code          = 22;
+           bool                     display_badges_on_profile         = 23;
+           bool                     subscription_manually_cancelled   = 24;
+           bool                     keep_muted_chats_archived         = 25;
+           bool                     has_set_my_stories_privacy        = 26;
+           bool                     has_viewed_onboarding_story       = 27;
+  // field 28 reserved (was storiesDisabled)
+           bool                     stories_disabled                  = 29;
+           bool                     has_seen_group_story_education_sheet = 32;
+           string                   username                          = 33;
+           bool                     has_completed_username_onboarding = 34;
+           UsernameLink             username_link                     = 35;
+}
+
+message StoryDistributionListRecord {
+           bytes  identifier                  = 1;
+           string name                        = 2;
+  repeated string recipient_service_ids       = 3;
+           uint64 deleted_at_timestamp        = 4;
+           bool   allows_replies              = 5;
+           bool   is_block_list               = 6;
+  repeated bytes  recipient_service_ids_binary = 7;
+}
+
+message StickerPackRecord {
+  bytes  pack_id              = 1;
+  bytes  pack_key             = 2;
+  uint32 position             = 3;
+  uint64 deleted_at_timestamp = 4;
+}
+
+message CallLinkRecord {
+  bytes  root_key                = 1;
+  bytes  admin_passkey           = 2;
+  uint64 deleted_at_timestamp_ms = 3;
+}
+
+message Recipient {
+  message Contact {
+    string service_id        = 1;
+    string e164              = 2;
+    bytes  service_id_binary = 3;
+  }
+
+  oneof identifier {
+    Contact contact          = 1;
+    bytes   legacy_group_id  = 2;
+    bytes   group_master_key = 3;
+  }
+}
+
+message ChatFolderRecord {
+  enum FolderType {
+    UNKNOWN = 0;
+    ALL     = 1;
+    CUSTOM  = 2;
+  }
+
+  bytes      identifier                  = 1;
+  string     name                        = 2;
+  uint32     position                    = 3;
+  bool       show_only_unread            = 4;
+  bool       show_muted_chats            = 5;
+  bool       include_all_individual_chats = 6;
+  bool       include_all_group_chats     = 7;
+  FolderType folder_type                 = 8;
+  repeated Recipient included_recipients = 9;
+  repeated Recipient excluded_recipients = 10;
+  uint64     deleted_at_timestamp_ms     = 11;
+}
+
+message NotificationProfile {
+  enum DayOfWeek {
+    UNKNOWN   = 0;
+    MONDAY    = 1;
+    TUESDAY   = 2;
+    WEDNESDAY = 3;
+    THURSDAY  = 4;
+    FRIDAY    = 5;
+    SATURDAY  = 6;
+    SUNDAY    = 7;
+  }
+
+  bytes              id                    = 1;
+  string             name                  = 2;
+  optional string    emoji                 = 3;
+  fixed32            color                 = 4;
+  uint64             created_at_ms         = 5;
+  bool               allow_all_calls       = 6;
+  bool               allow_all_mentions    = 7;
+  repeated Recipient allowed_members       = 8;
+  bool               schedule_enabled      = 9;
+  uint32             schedule_start_time   = 10;
+  uint32             schedule_end_time     = 11;
+  repeated DayOfWeek schedule_days_enabled = 12;
+  uint64             deleted_at_timestamp_ms = 13;
+}

@@ -1,0 +1,32 @@
+[package]
+name = "signal-rs-tui"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "signal-rs-tui"
+path = "src/main.rs"
+
+[dependencies]
+signal-rs-store = { workspace = true }
+signal-rs-manager = { workspace = true }
+signal-rs-service = { workspace = true }
+signal-rs-protocol = { workspace = true }
+signal-rs-protos = { workspace = true }
+prost = { workspace = true }
+clap = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+color-eyre = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+directories = { workspace = true }
+nucleo = { workspace = true }
+arboard = { workspace = true }
+unicode-width = { workspace = true }
+unicode-segmentation = { workspace = true }
+uuid = { workspace = true }
+zkgroup = { workspace = true }

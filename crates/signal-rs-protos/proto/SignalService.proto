@@ -1,0 +1,765 @@
+// Signal Protocol Buffer definitions - Core service messages
+// Based on Signal's protocol specification
+
+syntax = "proto3";
+
+package signalservice;
+
+option java_package = "org.whispersystems.signalservice.internal.push";
+option java_outer_classname = "SignalServiceProtos";
+
+message Envelope {
+  enum Type {
+    UNKNOWN            = 0;
+    CIPHERTEXT         = 1;
+    KEY_EXCHANGE       = 2;
+    PREKEY_BUNDLE      = 3;
+    RECEIPT            = 5;
+    UNIDENTIFIED_SENDER = 6;
+    PLAINTEXT_CONTENT  = 8;
+  }
+
+  optional Type   type                     = 1;
+  optional string source_service_id        = 11;
+  optional uint32 source_device            = 7;
+  optional string destination_service_id   = 13;
+  optional uint64 timestamp                = 5;
+  optional bytes  content                  = 8;
+  optional string server_guid              = 9;
+  optional uint64 server_timestamp         = 10;
+  optional bool   urgent                   = 14;
+  optional string updated_pni              = 15;
+  optional bool   story                    = 16;
+  optional bytes  reporting_token          = 17;
+
+  // Deprecated fields kept for backwards compatibility
+  reserved 6; // legacy content
+  reserved 2; // source E164
+  reserved 12; // source UUID (replaced by source_service_id)
+}
+
+message Content {
+  optional DataMessage    data_message    = 1;
+  optional SyncMessage    sync_message    = 2;
+  optional CallMessage    call_message    = 3;
+  optional NullMessage    null_message    = 4;
+  optional ReceiptMessage receipt_message = 5;
+  optional TypingMessage  typing_message  = 6;
+  optional bytes          sender_key_distribution_message = 7;
+  optional bytes          decryption_error_message        = 8;
+  optional StoryMessage   story_message   = 9;
+  optional PniSignatureMessage pni_signature_message = 10;
+  optional EditMessage    edit_message    = 11;
+}
+
+message CallMessage {
+  message Offer {
+    enum Type {
+      OFFER_AUDIO_CALL                = 0;
+      OFFER_VIDEO_CALL                = 1;
+    }
+
+    optional uint64 id     = 1;
+    optional Type   type   = 2;
+    optional bytes  opaque = 3;
+  }
+
+  message Answer {
+    optional uint64 id     = 1;
+    optional bytes  opaque = 2;
+  }
+
+  message IceUpdate {
+    optional uint64 id     = 1;
+    optional bytes  opaque = 2;
+  }
+
+  message Busy {
+    optional uint64 id = 1;
+  }
+
+  message Hangup {
+    enum Type {
+      HANGUP_NORMAL          = 0;
+      HANGUP_ACCEPTED        = 1;
+      HANGUP_DECLINED        = 2;
+      HANGUP_BUSY            = 3;
+      HANGUP_NEED_PERMISSION = 4;
+    }
+
+    optional uint64 id        = 1;
+    optional Type   type      = 2;
+    optional uint32 device_id = 3;
+  }
+
+  message Opaque {
+    enum Urgency {
+      DROPPABLE          = 0;
+      HANDLE_IMMEDIATELY = 1;
+    }
+
+    optional bytes   data    = 1;
+    optional Urgency urgency = 2;
+  }
+
+  optional Offer     offer       = 1;
+  optional Answer    answer      = 2;
+  repeated IceUpdate ice_update  = 3;
+  optional Hangup    hangup      = 4;
+  optional Busy      busy        = 5;
+  optional bytes     profile_key = 6;
+  optional Opaque    opaque      = 7;
+  optional bool      multi_ring  = 8;
+  optional uint32    destination_device_id = 9;
+}
+
+message DataMessage {
+  enum Flags {
+    FLAGS_UNSET              = 0;
+    END_SESSION              = 1;
+    EXPIRATION_TIMER_UPDATE  = 2;
+    PROFILE_KEY_UPDATE       = 4;
+  }
+
+  enum ProtocolVersion {
+    option allow_alias = true;
+
+    INITIAL                  = 0;
+    MESSAGE_TIMERS           = 1;
+    VIEW_ONCE                = 2;
+    VIEW_ONCE_VIDEO          = 3;
+    REACTIONS                = 4;
+    CDN_SELECTOR_ATTACHMENTS = 5;
+    MENTIONS                 = 6;
+    PAYMENTS                 = 7;
+    CURRENT                  = 7;
+  }
+
+  message Quote {
+    enum Type {
+      NORMAL     = 0;
+      GIFT_BADGE = 1;
+    }
+
+    message QuotedAttachment {
+      optional string            content_type = 1;
+      optional string            file_name    = 2;
+      optional AttachmentPointer thumbnail    = 3;
+    }
+
+    optional uint64            id          = 1;
+    optional string            author_aci  = 2;
+    optional string            text        = 3;
+    repeated QuotedAttachment  attachments = 4;
+    repeated BodyRange         body_ranges = 5;
+    optional Type              type        = 6;
+  }
+
+  message Contact {
+    message Name {
+      optional string given_name   = 1;
+      optional string family_name  = 2;
+      optional string prefix       = 3;
+      optional string suffix       = 4;
+      optional string middle_name  = 5;
+      optional string display_name = 6;
+    }
+
+    message Phone {
+      enum Type {
+        HOME   = 0;
+        MOBILE = 1;
+        WORK   = 2;
+        CUSTOM = 3;
+      }
+
+      optional string value = 1;
+      optional Type   type  = 2;
+      optional string label = 3;
+    }
+
+    message Email {
+      enum Type {
+        HOME   = 0;
+        MOBILE = 1;
+        WORK   = 2;
+        CUSTOM = 3;
+      }
+
+      optional string value = 1;
+      optional Type   type  = 2;
+      optional string label = 3;
+    }
+
+    message PostalAddress {
+      enum Type {
+        HOME   = 0;
+        WORK   = 1;
+        CUSTOM = 2;
+      }
+
+      optional Type   type         = 1;
+      optional string label        = 2;
+      optional string street       = 3;
+      optional string pobox        = 4;
+      optional string neighborhood = 5;
+      optional string city         = 6;
+      optional string region       = 7;
+      optional string postcode     = 8;
+      optional string country      = 9;
+    }
+
+    message Avatar {
+      optional AttachmentPointer avatar     = 1;
+      optional bool              is_profile = 2;
+    }
+
+    optional Name           name          = 1;
+    repeated Phone          number        = 3;
+    repeated Email          email         = 4;
+    repeated PostalAddress  address       = 5;
+    optional Avatar         avatar        = 6;
+    optional string         organization  = 7;
+  }
+
+  message Sticker {
+    optional bytes            pack_id    = 1;
+    optional bytes            pack_key   = 2;
+    optional uint32           sticker_id = 3;
+    optional AttachmentPointer data      = 4;
+    optional string           emoji      = 5;
+  }
+
+  message Reaction {
+    optional string emoji             = 1;
+    optional bool   remove            = 2;
+    optional string target_author_aci = 3;
+    optional uint64 target_sent_timestamp = 4;
+  }
+
+  message Delete {
+    optional uint64 target_sent_timestamp = 1;
+  }
+
+  message BodyRange {
+    enum Style {
+      NONE          = 0;
+      BOLD          = 1;
+      ITALIC        = 2;
+      SPOILER       = 3;
+      STRIKETHROUGH = 4;
+      MONOSPACE     = 5;
+    }
+
+    optional uint32 start  = 1;
+    optional uint32 length = 2;
+
+    oneof associated_value {
+      string mention_aci = 3;
+      Style  style       = 4;
+    }
+  }
+
+  message GroupCallUpdate {
+    optional string era_id = 1;
+  }
+
+  message Payment {
+    message Amount {
+      message MobileCoin {
+        optional uint64 pico_mob = 1;
+      }
+
+      oneof amount {
+        MobileCoin mobile_coin = 1;
+      }
+    }
+
+    message Notification {
+      message MobileCoin {
+        optional bytes receipt = 1;
+      }
+
+      oneof transaction {
+        MobileCoin mobile_coin = 1;
+      }
+
+      optional string note = 2;
+    }
+
+    message Activation {
+      enum Type {
+        REQUEST  = 0;
+        ACTIVATED = 1;
+      }
+
+      optional Type type = 1;
+    }
+
+    oneof item {
+      Notification notification = 1;
+      Activation   activation   = 2;
+    }
+  }
+
+  message StoryContext {
+    optional string author_aci      = 1;
+    optional uint64 sent_timestamp  = 2;
+  }
+
+  message GiftBadge {
+    optional bytes receipt_credential_presentation = 1;
+  }
+
+  optional string              body                     = 1;
+  repeated AttachmentPointer   attachments              = 2;
+  optional GroupContext         group                    = 3;
+  optional GroupContextV2      group_v2                 = 15;
+  optional uint32              flags                    = 4;
+  optional uint32              expire_timer             = 5;
+  optional bytes               profile_key              = 6;
+  optional uint64              timestamp                = 7;
+  optional Quote               quote                    = 8;
+  repeated Contact             contact                  = 9;
+  repeated Preview             preview                  = 10;
+  optional Sticker             sticker                  = 11;
+  optional uint32              required_protocol_version = 12;
+  optional bool                is_view_once             = 14;
+  optional Reaction            reaction                 = 16;
+  optional Delete              delete                   = 17;
+  repeated BodyRange           body_ranges              = 18;
+  optional GroupCallUpdate     group_call_update        = 19;
+  optional Payment             payment                  = 20;
+  optional StoryContext        story_context            = 21;
+  optional GiftBadge           gift_badge               = 22;
+}
+
+message NullMessage {
+  optional bytes padding = 1;
+}
+
+message ReceiptMessage {
+  enum Type {
+    DELIVERY = 0;
+    READ     = 1;
+    VIEWED   = 2;
+  }
+
+  optional Type   type      = 1;
+  repeated uint64 timestamp = 2;
+}
+
+message TypingMessage {
+  enum Action {
+    STARTED = 0;
+    STOPPED = 1;
+  }
+
+  optional uint64 timestamp = 1;
+  optional Action action    = 2;
+  optional bytes  group_id  = 3;
+}
+
+message StoryMessage {
+  optional bytes            profile_key = 1;
+  optional GroupContextV2   group       = 2;
+
+  oneof attachment {
+    AttachmentPointer file_attachment = 3;
+    TextAttachment    text_attachment = 4;
+  }
+
+  optional bool                    allows_replies = 5;
+  repeated DataMessage.BodyRange   body_ranges    = 6;
+}
+
+message TextAttachment {
+  enum Style {
+    DEFAULT  = 0;
+    REGULAR  = 1;
+    BOLD     = 2;
+    SERIF    = 3;
+    SCRIPT   = 4;
+    CONDENSED = 5;
+  }
+
+  message Gradient {
+    optional uint32  start_color = 1;
+    optional uint32  end_color   = 2;
+    optional uint32  angle       = 3;
+    repeated uint32  colors      = 4;
+    repeated float   positions   = 5;
+  }
+
+  optional string  text             = 1;
+  optional Style   text_style       = 2;
+  optional uint32  text_foreground_color = 3;
+  optional uint32  text_background_color = 4;
+  optional Preview preview          = 5;
+
+  oneof background {
+    Gradient gradient         = 6;
+    uint32   color            = 7;
+  }
+}
+
+message Verified {
+  enum State {
+    DEFAULT    = 0;
+    VERIFIED   = 1;
+    UNVERIFIED = 2;
+  }
+
+  optional string destination_aci = 1;
+  optional bytes  identity_key    = 2;
+  optional State  state           = 3;
+  optional bytes  null_message    = 4;
+}
+
+message SyncMessage {
+  message Sent {
+    message UnidentifiedDeliveryStatus {
+      optional string destination_service_id = 3;
+      optional bool   unidentified           = 2;
+
+      reserved 1; // destination E164
+    }
+
+    message StoryMessageRecipient {
+      optional string destination_service_id = 1;
+      repeated string distribution_list_ids  = 2;
+      optional bool   is_allowed_to_reply    = 3;
+    }
+
+    optional string                    destination_service_id = 7;
+    optional uint64                    timestamp              = 2;
+    optional DataMessage               message                = 3;
+    optional uint64                    expiration_start_timestamp = 4;
+    repeated UnidentifiedDeliveryStatus unidentified_status   = 5;
+    optional bool                      is_recipient_update    = 6;
+    optional StoryMessage              story_message          = 8;
+    repeated StoryMessageRecipient     story_message_recipients = 9;
+    optional EditMessage               edit_message           = 10;
+
+    reserved 1; // destination E164
+  }
+
+  message Contacts {
+    optional AttachmentPointer blob     = 1;
+    optional bool              complete = 2;
+  }
+
+  message Blocked {
+    repeated string numbers     = 1;
+    repeated string acis        = 2;
+    repeated bytes  group_ids   = 3;
+  }
+
+  message Request {
+    enum Type {
+      UNKNOWN       = 0;
+      CONTACTS      = 1;
+      BLOCKED       = 3;
+      CONFIGURATION = 4;
+      KEYS          = 5;
+      PNI_IDENTITY  = 6;
+    }
+
+    optional Type type = 1;
+  }
+
+  message Read {
+    optional string sender_aci = 1;
+    optional uint64 timestamp  = 2;
+  }
+
+  message Viewed {
+    optional string sender_aci = 1;
+    optional uint64 timestamp  = 2;
+  }
+
+  message Configuration {
+    optional bool   read_receipts                   = 1;
+    optional bool   unidentified_delivery_indicators = 2;
+    optional bool   typing_indicators               = 3;
+    optional uint32 provisioning_version             = 6;
+    optional bool   link_previews                   = 4;
+  }
+
+  message StickerPackOperation {
+    enum Type {
+      INSTALL = 0;
+      REMOVE  = 1;
+    }
+
+    optional bytes pack_id  = 1;
+    optional bytes pack_key = 2;
+    optional Type  type     = 3;
+  }
+
+  message ViewOnceOpen {
+    optional string sender_aci = 1;
+    optional uint64 timestamp  = 2;
+  }
+
+  message MessageRequestResponse {
+    enum Type {
+      UNKNOWN          = 0;
+      ACCEPT           = 1;
+      DELETE           = 2;
+      BLOCK            = 3;
+      BLOCK_AND_DELETE = 4;
+      SPAM             = 5;
+      BLOCK_AND_SPAM   = 6;
+    }
+
+    optional string thread_aci = 1;
+    optional bytes  group_id   = 2;
+    optional Type   type       = 3;
+  }
+
+  message FetchLatest {
+    enum Type {
+      UNKNOWN             = 0;
+      LOCAL_PROFILE       = 1;
+      STORAGE_MANIFEST    = 2;
+      SUBSCRIPTION_STATUS = 3;
+    }
+
+    optional Type type = 1;
+  }
+
+  message Keys {
+    optional bytes storage_service_key = 1;
+    optional bytes master              = 2;
+  }
+
+  message PniChangeNumber {
+    optional bytes  identity_key_pair = 1;
+    optional bytes  signed_pre_key   = 2;
+    optional bytes  last_resort_kyber_pre_key = 3;
+    optional uint32 registration_id  = 4;
+    optional string new_e164         = 5;
+  }
+
+  message CallEvent {
+    enum Type {
+      UNKNOWN_TYPE    = 0;
+      AUDIO_CALL      = 1;
+      VIDEO_CALL      = 2;
+      GROUP_CALL      = 3;
+      AD_HOC_CALL     = 4;
+    }
+
+    enum Direction {
+      UNKNOWN_DIRECTION = 0;
+      INCOMING          = 1;
+      OUTGOING          = 2;
+    }
+
+    enum Event {
+      UNKNOWN_ACTION = 0;
+      ACCEPTED       = 1;
+      NOT_ACCEPTED   = 2;
+      DELETE          = 3;
+      OBSERVED        = 4;
+    }
+
+    optional bytes     conversation_id = 1;
+    optional uint64    id              = 2;
+    optional uint64    timestamp       = 3;
+    optional Type      type            = 4;
+    optional Direction direction       = 5;
+    optional Event     event           = 6;
+  }
+
+  message CallLogEvent {
+    enum Type {
+      CLEAR           = 0;
+      MARKED_AS_READ  = 1;
+      MARKED_AS_READ_IN_CONVERSATION = 2;
+    }
+
+    optional Type   type            = 1;
+    optional uint64 timestamp       = 2;
+    optional bytes  conversation_id = 3;
+    optional uint64 call_id         = 4;
+  }
+
+  message DeleteForMe {
+    message ConversationIdentifier {
+      oneof identifier {
+        string thread_service_id = 1;
+        bytes  thread_group_id   = 2;
+        string thread_e164       = 3;
+      }
+    }
+
+    message AddressableMessage {
+      optional string author_service_id = 1;
+      optional uint64 sent_timestamp    = 2;
+    }
+
+    message MessageDeletes {
+      optional ConversationIdentifier conversation = 1;
+      repeated AddressableMessage    messages      = 2;
+    }
+
+    message AttachmentDelete {
+      optional ConversationIdentifier conversation           = 1;
+      optional AddressableMessage    target_message          = 2;
+      optional bytes                 client_uuid             = 3;
+      optional bytes                 fallback_digest         = 4;
+      optional bytes                 fallback_plaintext_hash = 5;
+    }
+
+    message ConversationDelete {
+      optional ConversationIdentifier conversation          = 1;
+      repeated AddressableMessage    most_recent_messages   = 2;
+      repeated AddressableMessage    most_recent_non_expiring_messages = 3;
+      optional bool                  is_full_delete         = 4;
+    }
+
+    message LocalOnlyConversationDelete {
+      optional ConversationIdentifier conversation = 1;
+    }
+
+    repeated MessageDeletes              message_deletes                = 1;
+    repeated ConversationDelete          conversation_deletes           = 2;
+    repeated LocalOnlyConversationDelete local_only_conversation_deletes = 3;
+    repeated AttachmentDelete            attachment_deletes             = 4;
+  }
+
+  optional Sent                   sent                      = 1;
+  optional Contacts               contacts                  = 2;
+  optional Request                request                   = 4;
+  repeated Read                   read                      = 5;
+  optional Blocked                blocked                   = 6;
+  optional Verified               verified                  = 7;
+  optional Configuration          configuration             = 9;
+  optional bytes                  padding                   = 8;
+  repeated StickerPackOperation   sticker_pack_operation    = 10;
+  optional ViewOnceOpen           view_once_open            = 11;
+  optional FetchLatest            fetch_latest              = 12;
+  optional Keys                   keys                      = 13;
+  optional MessageRequestResponse message_request_response  = 14;
+  repeated Viewed                 viewed                    = 15;
+  optional PniChangeNumber        pni_change_number         = 16;
+  optional CallEvent              call_event                = 17;
+  optional CallLogEvent           call_log_event            = 18;
+  optional DeleteForMe            delete_for_me             = 19;
+}
+
+message AttachmentPointer {
+  enum Flags {
+    FLAGS_UNSET  = 0;
+    VOICE_MESSAGE = 1;
+    BORDERLESS   = 2;
+    GIF          = 4;
+  }
+
+  oneof attachment_identifier {
+    fixed64 cdn_id  = 1;
+    string  cdn_key = 15;
+  }
+
+  optional string content_type              = 2;
+  optional bytes  key                       = 3;
+  optional uint32 size                      = 4;
+  optional bytes  thumbnail                 = 5;
+  optional bytes  digest                    = 6;
+  optional bytes  incremental_digest        = 16;
+  optional uint32 incremental_mac_chunk_size = 17;
+  optional string file_name                 = 7;
+  optional uint32 flags                     = 8;
+  optional uint32 width                     = 9;
+  optional uint32 height                    = 10;
+  optional string caption                   = 11;
+  optional string blur_hash                 = 12;
+  optional uint64 upload_timestamp          = 13;
+  optional uint32 cdn_number                = 14;
+  optional bytes  uuid                      = 18;
+}
+
+message GroupContext {
+  enum Type {
+    UNKNOWN      = 0;
+    UPDATE       = 1;
+    DELIVER      = 2;
+    QUIT         = 3;
+    REQUEST_INFO = 4;
+  }
+
+  optional bytes             id      = 1;
+  optional Type              type    = 2;
+  optional string            name    = 3;
+  repeated string            members_e164 = 4;
+  optional AttachmentPointer avatar  = 5;
+}
+
+message GroupContextV2 {
+  optional bytes  master_key    = 1;
+  optional uint32 revision      = 2;
+  optional bytes  group_change  = 3;
+}
+
+message ContactDetails {
+  message Avatar {
+    optional string content_type = 1;
+    optional uint32 length       = 2;
+  }
+
+  optional string number       = 1;
+  optional string aci          = 9;
+  optional string name         = 2;
+  optional Avatar avatar       = 3;
+  optional string color        = 4;
+  optional Verified verified   = 5;
+  optional bytes  profile_key  = 6;
+  optional uint32 expire_timer = 8;
+  optional uint32 inbox_position = 10;
+  optional bool   archived     = 11;
+
+  reserved 7; // blocked
+}
+
+message GroupDetails {
+  message Avatar {
+    optional string content_type = 1;
+    optional uint32 length       = 2;
+  }
+
+  message Member {
+    optional string e164 = 1;
+  }
+
+  optional bytes  id             = 1;
+  optional string name           = 2;
+  repeated string members_e164   = 3;
+  optional Avatar avatar         = 4;
+  optional bool   active         = 5;
+  optional uint32 expire_timer   = 6;
+  optional string color          = 7;
+  optional bool   blocked        = 8;
+  repeated Member members        = 9;
+  optional uint32 inbox_position = 10;
+  optional bool   archived       = 11;
+}
+
+message PniSignatureMessage {
+  optional bytes pni       = 1;
+  optional bytes signature = 2;
+}
+
+message EditMessage {
+  optional uint64      target_sent_timestamp = 1;
+  optional DataMessage data_message          = 2;
+}
+
+message Preview {
+  optional string            url         = 1;
+  optional string            title       = 2;
+  optional AttachmentPointer image       = 3;
+  optional string            description = 4;
+  optional uint64            date        = 5;
+}

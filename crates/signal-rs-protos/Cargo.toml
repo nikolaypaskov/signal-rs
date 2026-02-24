@@ -1,0 +1,12 @@
+[package]
+name = "signal-rs-protos"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+prost = { workspace = true }
+prost-types = { workspace = true }
+serde = { workspace = true }
+
+[build-dependencies]
+prost-build = "0.13"

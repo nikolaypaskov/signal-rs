@@ -1,0 +1,313 @@
+// Signal Protocol Buffer definitions - Groups v2
+// Based on Signal's groups v2 protocol using server-side encrypted groups
+
+syntax = "proto3";
+
+package signalservice;
+
+option java_package = "org.signal.storageservice.protos.groups";
+option java_outer_classname = "GroupsProtos";
+
+message Member {
+  enum Role {
+    UNKNOWN       = 0;
+    DEFAULT       = 1;
+    ADMINISTRATOR = 2;
+  }
+
+  optional bytes  user_id           = 1;
+  optional Role   role              = 2;
+  optional bytes  profile_key       = 3;
+  optional bytes  presentation      = 4;
+  optional uint32 joined_at_version = 5;
+}
+
+message PendingMember {
+  optional Member member            = 1;
+  optional bytes  added_by_user_id  = 2;
+  optional uint64 timestamp         = 3;
+}
+
+message RequestingMember {
+  optional bytes  user_id     = 1;
+  optional bytes  profile_key = 2;
+  optional bytes  presentation = 3;
+  optional uint64 timestamp   = 4;
+}
+
+message BannedMember {
+  optional bytes  user_id   = 1;
+  optional uint64 timestamp = 2;
+}
+
+message AccessControl {
+  enum AccessRequired {
+    UNKNOWN       = 0;
+    ANY           = 1;
+    MEMBER        = 2;
+    ADMINISTRATOR = 3;
+    UNSATISFIABLE = 4;
+  }
+
+  optional AccessRequired attributes           = 1;
+  optional AccessRequired members              = 2;
+  optional AccessRequired add_from_invite_link = 3;
+}
+
+message Group {
+  optional bytes         public_key                    = 1;
+  optional bytes         title                         = 2;
+  optional string        avatar                        = 3;
+  optional bytes         disappearing_messages_timer   = 4;
+  optional AccessControl access_control                = 5;
+  optional uint32        version                       = 6;
+  repeated Member        members                       = 7;
+  repeated PendingMember pending_members               = 8;
+  repeated RequestingMember requesting_members          = 9;
+  optional bytes         invite_link_password           = 10;
+  optional bytes         description_bytes              = 11;
+  optional bool          announcements_only             = 12;
+  repeated BannedMember  banned_members                = 13;
+}
+
+message GroupChange {
+  message Actions {
+    message AddMemberAction {
+      optional Member added    = 1;
+      optional bool   join_from_invite_link = 2;
+    }
+
+    message DeleteMemberAction {
+      optional bytes deleted_user_id = 1;
+    }
+
+    message ModifyMemberRoleAction {
+      optional bytes       user_id = 1;
+      optional Member.Role role    = 2;
+    }
+
+    message ModifyMemberProfileKeyAction {
+      optional bytes presentation = 1;
+      optional bytes user_id      = 2;
+      optional bytes profile_key  = 3;
+    }
+
+    message AddPendingMemberAction {
+      optional PendingMember added = 1;
+    }
+
+    message DeletePendingMemberAction {
+      optional bytes deleted_user_id = 1;
+    }
+
+    message PromotePendingMemberAction {
+      optional bytes presentation = 1;
+      optional bytes user_id      = 2;
+      optional bytes profile_key  = 3;
+    }
+
+    message PromotePendingPniAciMemberProfileKeyAction {
+      optional bytes presentation = 1;
+      optional bytes user_id      = 2;
+      optional bytes pni          = 3;
+      optional bytes profile_key  = 4;
+    }
+
+    message AddRequestingMemberAction {
+      optional RequestingMember added = 1;
+    }
+
+    message DeleteRequestingMemberAction {
+      optional bytes deleted_user_id = 1;
+    }
+
+    message PromoteRequestingMemberAction {
+      optional bytes       user_id = 1;
+      optional Member.Role role    = 2;
+    }
+
+    message AddBannedMemberAction {
+      optional BannedMember added = 1;
+    }
+
+    message DeleteBannedMemberAction {
+      optional bytes deleted_user_id = 1;
+    }
+
+    message ModifyTitleAction {
+      optional bytes title = 1;
+    }
+
+    message ModifyDescriptionAction {
+      optional bytes description_bytes = 1;
+    }
+
+    message ModifyAvatarAction {
+      optional string avatar = 1;
+    }
+
+    message ModifyDisappearingMessagesTimerAction {
+      optional bytes timer = 1;
+    }
+
+    message ModifyAttributesAccessControlAction {
+      optional AccessControl.AccessRequired attributes_access = 1;
+    }
+
+    message ModifyMembersAccessControlAction {
+      optional AccessControl.AccessRequired members_access = 1;
+    }
+
+    message ModifyAddFromInviteLinkAccessControlAction {
+      optional AccessControl.AccessRequired add_from_invite_link_access = 1;
+    }
+
+    message ModifyInviteLinkPasswordAction {
+      optional bytes invite_link_password = 1;
+    }
+
+    message ModifyAnnouncementsOnlyAction {
+      optional bool announcements_only = 1;
+    }
+
+    optional bytes                                        source_service_id = 1;
+    optional uint32                                       revision          = 2;
+    repeated AddMemberAction                              add_members       = 3;
+    repeated DeleteMemberAction                           delete_members    = 4;
+    repeated ModifyMemberRoleAction                       modify_member_roles = 5;
+    repeated ModifyMemberProfileKeyAction                 modify_member_profile_keys = 6;
+    repeated AddPendingMemberAction                       add_pending_members = 7;
+    repeated DeletePendingMemberAction                    delete_pending_members = 8;
+    repeated PromotePendingMemberAction                   promote_pending_members = 9;
+    optional ModifyTitleAction                            modify_title      = 10;
+    optional ModifyAvatarAction                           modify_avatar     = 11;
+    optional ModifyDisappearingMessagesTimerAction        modify_disappearing_messages_timer = 12;
+    optional ModifyAttributesAccessControlAction          modify_attributes_access = 13;
+    optional ModifyMembersAccessControlAction             modify_member_access = 14;
+    optional ModifyAddFromInviteLinkAccessControlAction   modify_add_from_invite_link_access = 15;
+    repeated AddRequestingMemberAction                    add_requesting_members = 16;
+    repeated DeleteRequestingMemberAction                 delete_requesting_members = 17;
+    repeated PromoteRequestingMemberAction                promote_requesting_members = 18;
+    optional ModifyInviteLinkPasswordAction               modify_invite_link_password = 19;
+    optional ModifyDescriptionAction                      modify_description = 20;
+    optional ModifyAnnouncementsOnlyAction                modify_announcements_only = 21;
+    repeated AddBannedMemberAction                        add_banned_members = 22;
+    repeated DeleteBannedMemberAction                     delete_banned_members = 23;
+    repeated PromotePendingPniAciMemberProfileKeyAction   promote_pending_pni_aci_members = 24;
+  }
+
+  optional bytes  actions          = 1;
+  optional bytes  server_signature = 2;
+  optional uint32 change_epoch     = 3;
+}
+
+message GroupChanges {
+  message GroupChangeState {
+    optional GroupChange group_change = 1;
+    optional Group       group_state  = 2;
+  }
+
+  repeated GroupChangeState group_changes = 1;
+}
+
+message GroupAttributeBlob {
+  oneof content {
+    string title       = 1;
+    bytes  avatar      = 2;
+    uint32 disappearing_messages_duration = 3;
+    string description = 4;
+  }
+}
+
+// ---- Decrypted types (after client-side decryption) ----
+
+message DecryptedGroup {
+  optional string              title                       = 2;
+  optional string              avatar                      = 3;
+  optional DecryptedTimer      disappearing_messages_timer = 4;
+  optional AccessControl       access_control              = 5;
+  optional uint32              revision                    = 6;
+  repeated DecryptedMember     members                     = 7;
+  repeated DecryptedPendingMember pending_members           = 8;
+  repeated DecryptedRequestingMember requesting_members     = 9;
+  optional bytes               invite_link_password         = 10;
+  optional string              description                 = 11;
+  optional bool                is_announcements_group       = 12;
+  repeated DecryptedBannedMember banned_members             = 13;
+}
+
+message DecryptedMember {
+  optional bytes       aci               = 1;
+  optional Member.Role role              = 2;
+  optional bytes       profile_key       = 3;
+  optional uint32      joined_at_version = 5;
+  optional bytes       pni               = 6;
+}
+
+message DecryptedPendingMember {
+  optional bytes       service_id        = 1;
+  optional Member.Role role              = 2;
+  optional bytes       added_by_aci      = 3;
+  optional uint64      timestamp         = 4;
+}
+
+message DecryptedRequestingMember {
+  optional bytes  aci         = 1;
+  optional bytes  profile_key = 2;
+  optional uint64 timestamp   = 3;
+}
+
+message DecryptedBannedMember {
+  optional bytes  service_id = 1;
+  optional uint64 timestamp  = 2;
+}
+
+message DecryptedTimer {
+  optional uint32 duration = 1;
+}
+
+message DecryptedGroupChange {
+  optional bytes                                     editor                       = 1;
+  optional uint32                                    revision                     = 2;
+  repeated DecryptedMember                           new_members                  = 3;
+  repeated bytes                                     delete_members               = 4;
+  repeated DecryptedModifyMemberRole                 modify_member_roles          = 5;
+  repeated DecryptedMember                           modified_profile_keys        = 6;
+  repeated DecryptedPendingMember                    new_pending_members          = 7;
+  repeated DecryptedPendingMemberRemoval             delete_pending_members       = 8;
+  repeated DecryptedMember                           promote_pending_members      = 9;
+  optional DecryptedString                           new_title                    = 10;
+  optional DecryptedString                           new_avatar                   = 11;
+  optional DecryptedTimer                            new_timer                    = 12;
+  optional AccessControl.AccessRequired              new_attribute_access         = 13;
+  optional AccessControl.AccessRequired              new_member_access            = 14;
+  optional AccessControl.AccessRequired              new_invite_link_access       = 15;
+  repeated DecryptedRequestingMember                 new_requesting_members       = 16;
+  repeated bytes                                     delete_requesting_members    = 17;
+  repeated DecryptedApproveMember                    promote_requesting_members   = 18;
+  optional bytes                                     new_invite_link_password     = 19;
+  optional DecryptedString                           new_description              = 20;
+  optional bool                                      new_is_announcements_group   = 21;
+  repeated DecryptedBannedMember                     new_banned_members           = 22;
+  repeated DecryptedBannedMember                     delete_banned_members        = 23;
+  repeated DecryptedMember                           promote_pending_pni_aci_members = 24;
+}
+
+message DecryptedModifyMemberRole {
+  optional bytes       aci  = 1;
+  optional Member.Role role = 2;
+}
+
+message DecryptedApproveMember {
+  optional bytes       aci  = 1;
+  optional Member.Role role = 2;
+}
+
+message DecryptedPendingMemberRemoval {
+  optional bytes service_id     = 1;
+  optional bytes aci_ciphertext = 2;
+}
+
+message DecryptedString {
+  optional string value = 1;
+}
