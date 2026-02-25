@@ -114,7 +114,7 @@ async fn run(cli: Cli) -> Result<()> {
     eprintln!("Listening for messages... (press Ctrl+C to stop)");
 
     let start_time = Instant::now();
-    let mut session_active = true; // tracks whether to use --continue
+    let mut session_mode = SessionMode::Continue; // default: continue most recent session
     let mut current_model: Option<String> = cli.model.clone();
 
     // Use a persistent WebSocket connection (same pattern as the TUI).
@@ -213,9 +213,11 @@ async fn run(cli: Cli) -> Result<()> {
                         &manager,
                         &sender_recipient,
                         &start_time,
-                        &mut session_active,
+                        &mut session_mode,
                         &mut current_model,
                         cli.max_message_length,
+                        &directory,
+                        &cli.claude_command,
                     )
                     .await;
                     if handled {
@@ -232,7 +234,7 @@ async fn run(cli: Cli) -> Result<()> {
                 let response = invoke_claude(
                     text,
                     &directory,
-                    session_active,
+                    &session_mode,
                     current_model.as_deref(),
                     cli.dangerously_skip_permissions,
                     &cli.claude_command,
@@ -244,8 +246,8 @@ async fn run(cli: Cli) -> Result<()> {
                     debug!("failed to stop typing indicator: {e}");
                 }
 
-                // After first successful invocation, continue the session
-                session_active = true;
+                // After first invocation, switch to --continue for subsequent messages
+                session_mode = SessionMode::Continue;
 
                 // Send response back, chunked if necessary
                 let chunks = chunk_message(&response, cli.max_message_length);
@@ -262,6 +264,16 @@ async fn run(cli: Cli) -> Result<()> {
             }
         }
     }
+}
+
+/// Session continuation mode for Claude invocations.
+enum SessionMode {
+    /// Start a fresh conversation (no --continue or --resume).
+    Fresh,
+    /// Continue the most recent session in the working directory (--continue).
+    Continue,
+    /// Resume a specific session by ID (--resume <id>).
+    Resume(String),
 }
 
 /// Ensure pre-keys are available on the server for this device.
@@ -298,14 +310,17 @@ async fn ensure_pre_keys(manager: &ManagerImpl) -> Result<()> {
 }
 
 /// Handle special slash commands. Returns true if the command was handled.
+#[allow(clippy::too_many_arguments)]
 async fn handle_command(
     text: &str,
     manager: &ManagerImpl,
     sender: &RecipientIdentifier,
     start_time: &Instant,
-    session_active: &mut bool,
+    session_mode: &mut SessionMode,
     current_model: &mut Option<String>,
     max_len: usize,
+    directory: &std::path::Path,
+    claude_command: &str,
 ) -> bool {
     let parts: Vec<&str> = text.splitn(2, ' ').collect();
     let cmd = parts[0].to_lowercase();
@@ -313,8 +328,20 @@ async fn handle_command(
 
     let reply = match cmd.as_str() {
         "/reset" => {
-            *session_active = false;
+            *session_mode = SessionMode::Fresh;
             "Session reset. Next message will start a fresh Claude conversation.".to_string()
+        }
+        "/resume" => {
+            if let Some(session_id) = arg {
+                *session_mode = SessionMode::Resume(session_id.to_string());
+                format!("Will resume session: {session_id}\nNext message continues that conversation.")
+            } else {
+                *session_mode = SessionMode::Continue;
+                "Will continue the most recent session in the working directory.".to_string()
+            }
+        }
+        "/sessions" => {
+            list_sessions(directory, claude_command).await
         }
         "/status" => {
             let uptime = start_time.elapsed();
@@ -323,9 +350,14 @@ async fn handle_command(
             let model_str = current_model
                 .as_deref()
                 .unwrap_or("default");
+            let session_str = match session_mode {
+                SessionMode::Fresh => "fresh (new conversation)".to_string(),
+                SessionMode::Continue => "continue (--continue)".to_string(),
+                SessionMode::Resume(id) => format!("resume ({id})"),
+            };
             format!(
-                "Bridge status:\n  Uptime: {hours}h {minutes}m\n  Session: {}\n  Model: {model_str}",
-                if *session_active { "active (--continue)" } else { "fresh" }
+                "Bridge status:\n  Uptime: {hours}h {minutes}m\n  Session: {session_str}\n  Model: {model_str}\n  Directory: {}",
+                directory.display()
             )
         }
         "/model" => {
@@ -338,6 +370,15 @@ async fn handle_command(
                     .unwrap_or("default");
                 format!("Current model: {model_str}\nUsage: /model <name>")
             }
+        }
+        "/help" => {
+            "Bridge commands:\n\
+             /resume [session-id] — resume a session (or latest)\n\
+             /sessions — list recent Claude sessions\n\
+             /reset — start a fresh conversation\n\
+             /model [name] — show or switch model\n\
+             /status — show bridge status\n\
+             /help — show this help".to_string()
         }
         _ => return false,
     };
@@ -354,11 +395,160 @@ async fn handle_command(
     true
 }
 
+/// List recent Claude sessions in the working directory.
+async fn list_sessions(directory: &std::path::Path, claude_command: &str) -> String {
+    // Ask claude to list recent sessions via --resume with a dummy search
+    // that returns the interactive list as text output.
+    // Alternatively, we can check the sessions directory directly.
+    let shell_cmd = format!(
+        "{claude_command} --print --output-format json -r '' -p 'say hi' 2>&1 || true"
+    );
+
+    // Try to find sessions from Claude's project data directory.
+    // Sessions are stored in ~/.claude/projects/<project-hash>/sessions/
+    // Claude stores sessions at ~/.claude/projects/<path-with-slashes-as-dashes>/
+    let project_dir = directory.display().to_string().replace('/', "-");
+    let home = std::env::var("HOME").ok().map(PathBuf::from);
+    let sessions_dir = home
+        .map(|h| h.join(".claude").join("projects").join(&project_dir));
+
+    if let Some(ref sd) = sessions_dir
+        && sd.exists()
+    {
+        // List session files sorted by modification time
+        match list_session_files(sd) {
+            Ok(sessions) if !sessions.is_empty() => return sessions,
+            Ok(_) => return "No sessions found for this directory.".to_string(),
+            Err(e) => {
+                warn!("failed to list sessions: {e}");
+                // fall through
+            }
+        }
+    }
+
+    // Fallback: try running claude --resume to get session list
+    let mut cmd = tokio::process::Command::new("zsh");
+    cmd.arg("-i").arg("-c").arg(&shell_cmd);
+    cmd.current_dir(directory);
+
+    match cmd.output().await {
+        Ok(output) => {
+            let combined = format!(
+                "{}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr),
+            );
+            if combined.trim().is_empty() {
+                "No sessions found.".to_string()
+            } else {
+                combined
+            }
+        }
+        Err(e) => format!("Failed to list sessions: {e}"),
+    }
+}
+
+/// Read session files from Claude's sessions directory.
+fn list_session_files(sessions_dir: &std::path::Path) -> Result<String> {
+    let mut entries: Vec<_> = std::fs::read_dir(sessions_dir)?
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.path()
+                .extension()
+                .and_then(|s| s.to_str())
+                == Some("jsonl")
+        })
+        .filter_map(|e| {
+            let modified = e.metadata().ok()?.modified().ok()?;
+            Some((e.path(), modified))
+        })
+        .collect();
+
+    // Sort by modification time, most recent first
+    entries.sort_by(|a, b| b.1.cmp(&a.1));
+
+    // Show the 10 most recent
+    let mut output = String::from("Recent sessions:\n");
+    for (i, (path, modified)) in entries.iter().take(10).enumerate() {
+        let session_id = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("unknown");
+        let age = modified
+            .elapsed()
+            .unwrap_or_default();
+        let age_str = if age.as_secs() < 60 {
+            "just now".to_string()
+        } else if age.as_secs() < 3600 {
+            format!("{}m ago", age.as_secs() / 60)
+        } else if age.as_secs() < 86400 {
+            format!("{}h ago", age.as_secs() / 3600)
+        } else {
+            format!("{}d ago", age.as_secs() / 86400)
+        };
+
+        // Try to read the first user message as a summary
+        let summary = read_session_summary(path);
+
+        output.push_str(&format!(
+            "\n{}. {} ({})\n   {}",
+            i + 1,
+            session_id,
+            age_str,
+            summary,
+        ));
+    }
+
+    output.push_str("\n\nUse /resume <session-id> to continue a session.");
+    Ok(output)
+}
+
+/// Read a brief summary (first user message) from a session file.
+fn read_session_summary(path: &std::path::Path) -> String {
+    let content = match std::fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return "(could not read)".to_string(),
+    };
+
+    // Session files are JSONL — find the first user message
+    for line in content.lines().take(20) {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(line)
+            && val.get("type").and_then(|t| t.as_str()) == Some("human")
+            && let Some(msg) = val.get("message").and_then(|m| m.get("content"))
+        {
+            let text = if let Some(s) = msg.as_str() {
+                s.to_string()
+            } else if let Some(arr) = msg.as_array() {
+                arr.iter()
+                    .filter_map(|v| {
+                        if v.get("type")?.as_str()? == "text" {
+                            v.get("text")?.as_str().map(String::from)
+                        } else {
+                            None
+                        }
+                    })
+                    .next()
+                    .unwrap_or_default()
+            } else {
+                continue;
+            };
+            // Truncate to ~80 chars
+            let trimmed = text.trim();
+            if trimmed.len() > 80 {
+                return format!("{}...", &trimmed[..77]);
+            }
+            return trimmed.to_string();
+        }
+    }
+
+    "(no summary)".to_string()
+}
+
 /// Invoke `claude` CLI and return its stdout output.
 async fn invoke_claude(
     prompt: &str,
     directory: &std::path::Path,
-    use_continue: bool,
+    session_mode: &SessionMode,
     model: Option<&str>,
     dangerously_skip_permissions: bool,
     claude_command: &str,
@@ -367,8 +557,10 @@ async fn invoke_claude(
     // aliases and functions from the user's profile are available.
     let mut shell_cmd = format!("{claude_command} --print");
 
-    if use_continue {
-        shell_cmd.push_str(" --continue");
+    match session_mode {
+        SessionMode::Fresh => {} // no flag — starts a new conversation
+        SessionMode::Continue => shell_cmd.push_str(" --continue"),
+        SessionMode::Resume(id) => shell_cmd.push_str(&format!(" --resume {}", shell_escape(id))),
     }
 
     if dangerously_skip_permissions {
