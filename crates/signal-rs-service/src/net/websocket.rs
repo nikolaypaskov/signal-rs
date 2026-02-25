@@ -243,6 +243,15 @@ fn backoff_delay(attempt: u32) -> Duration {
     delay.min(RECONNECT_MAX_DELAY)
 }
 
+/// Reason why the connection loop exited.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DisconnectReason {
+    /// Server sent close code 4409 "Connected elsewhere".
+    ConnectedElsewhere,
+    /// Any other disconnect (error, normal close, pong timeout, etc.).
+    Other,
+}
+
 impl SignalWebSocket {
     /// Connect to the Signal WebSocket at the given URL.
     ///
@@ -430,13 +439,18 @@ impl SignalWebSocket {
         url: String,
         credentials: Option<ServiceCredentials>,
     ) {
+        // Track consecutive 4409 "Connected elsewhere" kicks to apply
+        // increasing backoff.  Reset to 0 whenever the connection stays
+        // alive long enough to receive a real message.
+        let mut consecutive_4409: u32 = 0;
+
         loop {
             state.store(WebSocketState::Connected.as_u8(), Ordering::SeqCst);
-            let mut reconnect_attempts: u32 = 0;
 
             // Run the connection loop; returns when the connection drops.
-            Self::connection_loop(&mut write, &mut read, &mut write_rx, &incoming_tx, &pending)
-                .await;
+            let disconnect_reason = Self::connection_loop(
+                &mut write, &mut read, &mut write_rx, &incoming_tx, &pending,
+            ).await;
 
             // Clean up the old write side.
             let _ = write.close().await;
@@ -456,20 +470,45 @@ impl SignalWebSocket {
                 break;
             }
 
+            // Track consecutive 4409 errors for increasing backoff.
+            if disconnect_reason == DisconnectReason::ConnectedElsewhere {
+                consecutive_4409 += 1;
+                let delay = backoff_delay(consecutive_4409.min(6)); // cap at ~64s
+                warn!(
+                    consecutive = consecutive_4409,
+                    delay_ms = delay.as_millis() as u64,
+                    "server says another client is connected as this device \
+                     (4409 \"Connected elsewhere\"). Waiting before retry..."
+                );
+                tokio::time::sleep(delay).await;
+            } else {
+                consecutive_4409 = 0;
+            }
+
             // Attempt reconnection with exponential backoff.
+            let mut reconnect_attempts: u32 = 0;
             let mut reconnected = false;
             while reconnect_attempts < MAX_RECONNECT_ATTEMPTS {
                 state.store(WebSocketState::Connecting.as_u8(), Ordering::SeqCst);
 
-                let delay = backoff_delay(reconnect_attempts);
-                info!(
-                    attempt = reconnect_attempts + 1,
-                    max = MAX_RECONNECT_ATTEMPTS,
-                    delay_ms = delay.as_millis() as u64,
-                    "reconnecting WebSocket"
-                );
-
-                tokio::time::sleep(delay).await;
+                // Skip delay for first attempt after a normal disconnect
+                // (4409 already waited above).
+                if reconnect_attempts > 0 {
+                    let delay = backoff_delay(reconnect_attempts);
+                    info!(
+                        attempt = reconnect_attempts + 1,
+                        max = MAX_RECONNECT_ATTEMPTS,
+                        delay_ms = delay.as_millis() as u64,
+                        "reconnecting WebSocket"
+                    );
+                    tokio::time::sleep(delay).await;
+                } else {
+                    info!(
+                        attempt = 1,
+                        max = MAX_RECONNECT_ATTEMPTS,
+                        "reconnecting WebSocket"
+                    );
+                }
 
                 let request = match Self::build_request(&url, credentials.as_ref()) {
                     Ok(r) => r,
@@ -517,11 +556,12 @@ impl SignalWebSocket {
         write_rx: &mut mpsc::Receiver<Vec<u8>>,
         incoming_tx: &mpsc::Sender<WebSocketIncomingRequest>,
         pending: &PendingMap,
-    ) {
+    ) -> DisconnectReason {
         let mut keepalive = tokio::time::interval(KEEPALIVE_INTERVAL);
         keepalive.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         let mut awaiting_pong = false;
         let mut pong_deadline: Option<tokio::time::Instant> = None;
+        let mut disconnect_reason = DisconnectReason::Other;
 
         loop {
             // If we are waiting for a pong, enforce the timeout.
@@ -555,12 +595,17 @@ impl SignalWebSocket {
                             awaiting_pong = false;
                             pong_deadline = None;
                         }
-                        Some(Ok(WsMessage::Close(_))) => {
-                            debug!("WebSocket closed by server");
+                        Some(Ok(WsMessage::Close(frame))) => {
+                            if let Some(ref cf) = frame
+                                && cf.code == tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Library(4409)
+                            {
+                                disconnect_reason = DisconnectReason::ConnectedElsewhere;
+                            }
+                            debug!(?frame, "WebSocket closed by server");
                             break;
                         }
                         Some(Ok(_)) => {
-                            // Text or other frame types, ignore
+                            // Other frame types, ignore
                         }
                         Some(Err(e)) => {
                             warn!("WebSocket read error: {e}");
@@ -607,6 +652,8 @@ impl SignalWebSocket {
                 }
             }
         }
+
+        disconnect_reason
     }
 
     /// Handle a binary WebSocket frame containing a protobuf WebSocketMessage.
