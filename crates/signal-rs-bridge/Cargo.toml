@@ -1,0 +1,22 @@
+[package]
+name = "signal-rs-bridge"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "signal-rs-bridge"
+path = "src/main.rs"
+
+[dependencies]
+signal-rs-manager = { workspace = true }
+signal-rs-protocol = { workspace = true }
+signal-rs-store = { workspace = true }
+signal-rs-service = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+color-eyre = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+directories = { workspace = true }
+uuid = { workspace = true }

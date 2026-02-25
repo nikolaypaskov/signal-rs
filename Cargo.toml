@@ -8,6 +8,7 @@ members = [
     "crates/signal-rs-manager",
     "crates/signal-rs-cli",
     "crates/signal-rs-tui",
+    "crates/signal-rs-bridge",
 ]
 
 [workspace.package]
