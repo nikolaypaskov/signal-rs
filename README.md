@@ -44,6 +44,8 @@ A 100% Rust implementation of a Signal messenger client with CLI and TUI interfa
 | Storage | SQLCipher encrypted database | Working |
 | TUI | Real-time messaging UI | Working |
 | TUI | Conversation list & search | Working |
+| Bridge | Claude Code via Signal | Working |
+| Bridge | Session handover (desktop → phone) | Working |
 | Calls | Voice/video calls | Not implemented |
 | Backup | Remote backup/restore | Not implemented |
 | Stories | Stories | Not implemented |
@@ -51,10 +53,11 @@ A 100% Rust implementation of a Signal messenger client with CLI and TUI interfa
 ## Architecture
 
 ```
-signal-rs workspace (7 crates)
+signal-rs workspace (8 crates)
 
   signal-rs-cli ──────┐
   signal-rs-tui ──────┤
+  signal-rs-bridge ───┤
                       ▼
               signal-rs-manager    Orchestration & business logic
                  │         │
@@ -75,6 +78,7 @@ signal-rs workspace (7 crates)
 | `signal-rs-manager` | High-level operations orchestration |
 | `signal-rs-cli` | Command-line interface with 58+ commands |
 | `signal-rs-tui` | Terminal UI with real-time messaging |
+| `signal-rs-bridge` | Claude Code via Signal — interact with Claude from your phone |
 
 ## Prerequisites
 
@@ -97,6 +101,7 @@ cargo build --release
 The binaries will be at:
 - `target/release/signal-rs` (CLI)
 - `target/release/signal-rs-tui` (TUI)
+- `target/release/signal-rs-bridge` (Claude Code bridge)
 
 ## Usage
 
@@ -133,6 +138,36 @@ signal-rs receive
 ```bash
 signal-rs-tui
 ```
+
+### 6. Claude Code Bridge
+
+Run Claude Code from your phone via Signal messages:
+
+```bash
+# Link a dedicated Signal account for the bot
+signal-rs link -n "claude-bot"
+
+# Start the bridge
+signal-rs-bridge \
+  --owner <your-uuid-or-phone> \
+  --directory /path/to/project \
+  --dangerously-skip-permissions
+```
+
+Send messages from your phone to the bot's Signal number — they're piped to `claude --print` and the response is sent back.
+
+**Bridge commands** (send via Signal):
+
+| Command | Action |
+|---------|--------|
+| `/sessions` | List recent Claude sessions in the working directory |
+| `/resume [id]` | Resume a specific session (handover from desktop) |
+| `/reset` | Start a fresh Claude conversation |
+| `/model [name]` | Show or switch the Claude model |
+| `/status` | Show bridge uptime and session info |
+| `/help` | Show all commands |
+
+**Options**: `--claude-command <alias>` for custom claude aliases, `--model <name>`, `--max-message-length <n>`.
 
 ### CLI commands
 
