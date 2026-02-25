@@ -44,7 +44,7 @@ A 100% Rust implementation of a Signal messenger client with CLI and TUI interfa
 | Storage | SQLCipher encrypted database | Working |
 | TUI | Real-time messaging UI | Working |
 | TUI | Conversation list & search | Working |
-| Bridge | Claude Code via Signal | Working |
+| Bridge | AI assistant via Signal | Working |
 | Bridge | Session handover (desktop → phone) | Working |
 | Calls | Voice/video calls | Not implemented |
 | Backup | Remote backup/restore | Not implemented |
@@ -78,7 +78,7 @@ signal-rs workspace (8 crates)
 | `signal-rs-manager` | High-level operations orchestration |
 | `signal-rs-cli` | Command-line interface with 58+ commands |
 | `signal-rs-tui` | Terminal UI with real-time messaging |
-| `signal-rs-bridge` | Claude Code via Signal — interact with Claude from your phone |
+| `signal-rs-bridge` | AI assistant bridge — pipe Signal messages to any CLI command |
 
 ## Prerequisites
 
@@ -139,35 +139,40 @@ signal-rs receive
 signal-rs-tui
 ```
 
-### 6. Claude Code Bridge
+### 6. AI Assistant Bridge
 
-Run Claude Code from your phone via Signal messages:
+Pipe Signal messages to any CLI assistant (Claude Code, etc.) and get responses back:
 
 ```bash
 # Link a dedicated Signal account for the bot
-signal-rs link -n "claude-bot"
+signal-rs link -n "assistant-bot"
 
-# Start the bridge
+# Start the bridge (defaults to `claude` command)
 signal-rs-bridge \
   --owner <your-uuid-or-phone> \
-  --directory /path/to/project \
+  --directory /path/to/project
+
+# Or use a custom command
+signal-rs-bridge \
+  --owner <your-uuid> \
+  --claude-command my-assistant-alias \
   --dangerously-skip-permissions
 ```
 
-Send messages from your phone to the bot's Signal number — they're piped to `claude --print` and the response is sent back.
+Send messages from your phone to the bot's Signal number — they're piped to the configured command and the response is sent back.
 
 **Bridge commands** (send via Signal):
 
 | Command | Action |
 |---------|--------|
-| `/sessions` | List recent Claude sessions in the working directory |
+| `/sessions` | List recent sessions in the working directory |
 | `/resume [id]` | Resume a specific session (handover from desktop) |
-| `/reset` | Start a fresh Claude conversation |
-| `/model [name]` | Show or switch the Claude model |
+| `/reset` | Start a fresh conversation |
+| `/model [name]` | Show or switch the model |
 | `/status` | Show bridge uptime and session info |
 | `/help` | Show all commands |
 
-**Options**: `--claude-command <alias>` for custom claude aliases, `--model <name>`, `--max-message-length <n>`.
+**Options**: `--claude-command <cmd>` for custom commands/aliases, `--model <name>`, `--max-message-length <n>`, `--dangerously-skip-permissions`.
 
 ### CLI commands
 

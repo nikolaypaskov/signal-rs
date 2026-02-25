@@ -17,7 +17,7 @@ cargo clippy
 - Proto field numbers matter for wire format, not field names
 - WebSocket message receiving: use `connect_message_pipe()` + `process_incoming_ws_request()` for persistent connections (TUI/bridge pattern), not `receive_messages()` which creates a new WebSocket per call
 - WebSocket 4409 "Connected elsewhere": server kicks when two clients connect as the same device; handled with exponential backoff
-- signal-rs-bridge: pipes Signal messages to `claude --print` via `zsh -i -c` (for alias support); supports `--continue`/`--resume` for session handover
+- signal-rs-bridge: pipes Signal messages to a configurable command (`--claude-command`) via `zsh -i -c` (for alias support); supports `--continue`/`--resume` for session management
 
 ## Commit Rules
 
